@@ -1046,6 +1046,7 @@ def family_freshness() -> None:
                    bundle_of([n], n["id"]), "environment-mismatch")
 
     n = input_node("x", "1", "2")
+    n["freshness"]["emitted_at_unix"] = str(VTIME - 1000)
     n["freshness"]["expires_at_unix"] = str(VTIME - 10)
     rehash(n)
     expect_refused("F-expired",
@@ -1063,6 +1064,65 @@ def family_freshness() -> None:
     n["freshness"]["emitted_at_unix"] = str(VTIME - 100)
     rehash(n)
     expect_verified("F-pos-age-ok", bundle_of([n], n["id"]))
+
+    # ---- chronology lower bounds (SIGNOFF proposal): the verifier must
+    #      reject verification-before-emission, negative verification time,
+    #      and contradictory emitted/expires lifecycles -- not only upper
+    #      age/expiry bounds.  RED on pre-fix bytes: the false-accept rows
+    #      below VERIFY (F-expires-negative pre-fix refused under the wrong
+    #      class) because only one-sided bounds were enforced.
+    n = input_node("x", "1", "2")
+    n["freshness"]["emitted_at_unix"] = str(VTIME + 100)
+    rehash(n)
+    expect_refused("F-premature-future-emit",
+                   bundle_of([n], n["id"]), "freshness-premature")
+
+    n = input_node("x", "1", "2")
+    rehash(n)
+    expect_refused("F-negative-vtime",
+                   bundle_of([n], n["id"]), "freshness-schema", vtime=-1)
+
+    n = input_node("x", "1", "2")
+    n["freshness"]["emitted_at_unix"] = str(VTIME)
+    n["freshness"]["expires_at_unix"] = str(VTIME - 100)
+    rehash(n)
+    expect_refused("F-expires-before-emit",
+                   bundle_of([n], n["id"]), "freshness-schema",
+                   vtime=VTIME - 100)
+
+    n = input_node("x", "1", "2")
+    n["freshness"]["expires_at_unix"] = "-5"
+    rehash(n)
+    expect_refused("F-expires-negative",
+                   bundle_of([n], n["id"]), "freshness-schema")
+
+    n = input_node("x", "1", "2")
+    n["freshness"]["emitted_at_unix"] = str(VTIME)
+    rehash(n)
+    expect_verified("F-emit-eq-vtime-ok", bundle_of([n], n["id"]),
+                    vtime=VTIME)
+
+    n = input_node("x", "1", "2")
+    n["freshness"]["emitted_at_unix"] = str(VTIME)
+    n["freshness"]["expires_at_unix"] = str(VTIME)
+    rehash(n)
+    expect_verified("F-expiry-eq-emit-eq-vtime-ok",
+                    bundle_of([n], n["id"]), vtime=VTIME)
+
+    # A -> B -> A restoration on the chronology gate.
+    n = input_node("x", "1", "2")
+    n["freshness"]["emitted_at_unix"] = str(VTIME)
+    rehash(n)
+    expect_verified("F-aba-a1", bundle_of([n], n["id"]), vtime=VTIME)
+    n = input_node("x", "1", "2")
+    n["freshness"]["emitted_at_unix"] = str(VTIME + 100)
+    rehash(n)
+    expect_refused("F-aba-b", bundle_of([n], n["id"]),
+                   "freshness-premature", vtime=VTIME)
+    n = input_node("x", "1", "2")
+    n["freshness"]["emitted_at_unix"] = str(VTIME)
+    rehash(n)
+    expect_verified("F-aba-a2", bundle_of([n], n["id"]), vtime=VTIME)
 
     n = input_node("x", "1", "2")
     n["freshness"]["nonce"] = "abc123"

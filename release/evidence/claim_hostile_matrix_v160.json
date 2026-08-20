@@ -458,6 +458,60 @@
       "ok": true
     },
     {
+      "expect": "refused/freshness-premature",
+      "id": "F-premature-future-emit",
+      "observed": "refused/freshness-premature",
+      "ok": true
+    },
+    {
+      "expect": "refused/freshness-schema",
+      "id": "F-negative-vtime",
+      "observed": "refused/freshness-schema",
+      "ok": true
+    },
+    {
+      "expect": "refused/freshness-schema",
+      "id": "F-expires-before-emit",
+      "observed": "refused/freshness-schema",
+      "ok": true
+    },
+    {
+      "expect": "refused/freshness-schema",
+      "id": "F-expires-negative",
+      "observed": "refused/freshness-schema",
+      "ok": true
+    },
+    {
+      "expect": "verified",
+      "id": "F-emit-eq-vtime-ok",
+      "observed": "verified/",
+      "ok": true
+    },
+    {
+      "expect": "verified",
+      "id": "F-expiry-eq-emit-eq-vtime-ok",
+      "observed": "verified/",
+      "ok": true
+    },
+    {
+      "expect": "verified",
+      "id": "F-aba-a1",
+      "observed": "verified/",
+      "ok": true
+    },
+    {
+      "expect": "refused/freshness-premature",
+      "id": "F-aba-b",
+      "observed": "refused/freshness-premature",
+      "ok": true
+    },
+    {
+      "expect": "verified",
+      "id": "F-aba-a2",
+      "observed": "verified/",
+      "ok": true
+    },
+    {
       "expect": "verified",
       "id": "F-pos-nonce",
       "observed": "verified/",
@@ -652,5 +706,5 @@
   ],
   "schema": "jackal-claim-hostile-matrix-v1",
   "verdict": "PASS",
-  "verifier": "e0fcb9540c730bd9bb492b528ed42d29d49fc775b3aa0f9b831b6264fd68fd22"
+  "verifier": "90d6480e7353730488c88e1848972c837dc0e443e9a8e358327843e7ac13afc2"
 }

@@ -122,6 +122,14 @@ decision, display`
 - `freshness` — `{"source_version","emitted_at_unix","max_age_seconds",
   "expires_at_unix","nonce","environment_epoch"}` (nullable fields
   explicit `null`).  `environment_epoch` = pinned evaluator SHA-256.
+  Chronology is bounded on BOTH sides against the caller-supplied
+  verification time `t`: the verifier refuses `emitted_at_unix < 0` or
+  `t < 0` (`freshness-schema`), `expires_at_unix < 0` or
+  `expires_at_unix < emitted_at_unix` (`freshness-schema`),
+  `t < emitted_at_unix` (`freshness-premature`), `t > expires_at_unix`
+  when set (`freshness-expired`), and `t - emitted_at_unix >
+  max_age_seconds` when set (`freshness-stale`).  These bind
+  SELF-DECLARED timestamps for lifecycle consistency only — see §10.
 - `decision` — `null` or `{"decision_id","action","comparison","threshold",
   "margin","consequence_class"}` (only `robust_decision` nodes).
 - `display` — `{"text": "<untrusted commentary>"}` (may be empty string).
@@ -366,8 +374,12 @@ result, and the recomputed rendering token + permitted text.
 verifier binary unavailable), never for semantic failure.
 
 Replay honesty: the verifier proves nonce/epoch binding and caller-time
-freshness only.  One-time replay PREVENTION requires a durable external
-nonce store and is an explicit residual non-claim in v1.
+freshness only.  Freshness bounds emission, verification, and expiry
+against the caller-supplied time (see §3), but those timestamps are
+SELF-DECLARED by the producer: the verifier enforces internal lifecycle
+consistency, NOT timestamp authenticity or temporal provenance (there is
+no trusted time source).  One-time replay PREVENTION requires a durable
+external nonce store and is an explicit residual non-claim in v1.
 
 ## 11. Renderer
 

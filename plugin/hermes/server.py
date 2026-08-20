@@ -1456,6 +1456,10 @@ def tool_jackal_verify_bundle(args: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(args[key], str) or not args[key]:
             raise PluginRefusal("plugin-args-schema",
                                 f"missing/invalid field: {key!r}")
+    if not re.fullmatch(r"0|[1-9][0-9]*", args["verification_time_unix"]):
+        raise PluginRefusal(
+            "plugin-args-schema",
+            "verification_time_unix must be a nonnegative integer token")
     verifier_path, verifier_pin = _claim_component("claim_verifier")
     inf_path, inf_pin = _claim_component("claim_inference_registry")
     unit_path, unit_pin = _claim_component("claim_unit_registry")

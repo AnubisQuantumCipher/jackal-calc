@@ -204,7 +204,8 @@ REASON_CLASSES = (
     "environment-mismatch", "epoch-mismatch", "evidence-encoding",
     "evidence-hash-mismatch", "evidence-kind", "evidence-producer-untrusted",
     "evidence-prop-mismatch", "evidence-verify-failed", "float-forbidden",
-    "freshness-expired", "freshness-schema", "freshness-stale",
+    "freshness-expired", "freshness-premature", "freshness-schema",
+    "freshness-stale",
     "graph-cycle", "implementation-upgrade", "int-budget",
     "interval-div-zero", "interval-endpoints", "legacy-dispatch-failed",
     "legacy-verifier-unavailable", "machine-cert-invalid",
@@ -2156,8 +2157,15 @@ def deep_validate_node(node: dict, units: UnitRegistry, args,
                                 or max_age < 0):
         raise Refusal("freshness-schema", "max_age_seconds")
     expires = fresh["expires_at_unix"]
+    expires_val = None
     if expires is not None:
-        parse_int_token(expires, what="expires_at")
+        expires_val = parse_int_token(expires, what="expires_at")
+        if expires_val < 0:
+            raise Refusal("freshness-schema", "expires_at negative")
+        if expires_val < emitted:
+            raise Refusal("freshness-schema",
+                          f"expires_at {expires_val} precedes emitted_at "
+                          f"{emitted}")
     nonce = fresh["nonce"]
     if nonce is not None and not isinstance(nonce, str):
         raise Refusal("freshness-schema", "nonce")
@@ -2165,9 +2173,22 @@ def deep_validate_node(node: dict, units: UnitRegistry, args,
         raise Refusal("environment-mismatch",
                       f"node environment {str(fresh['environment_epoch'])[:16]}")
     vtime = args.verification_time_unix
-    if expires is not None and vtime > int(expires):
+    # Chronology lower bounds: a well-formed bundle must not verify before
+    # it was emitted, at a negative (pre-epoch) verification time, or with a
+    # lifecycle whose expiry precedes emission.  Ordering matters: domain
+    # violations refuse as freshness-schema; a valid-but-too-early check
+    # refuses as freshness-premature; only then are the upper expiry/age
+    # bounds evaluated (so vtime - emitted is always non-negative below).
+    if vtime < 0:
+        raise Refusal("freshness-schema",
+                      f"verification time {vtime} is negative")
+    if vtime < emitted:
+        raise Refusal("freshness-premature",
+                      f"verification time {vtime} precedes emitted_at "
+                      f"{emitted}")
+    if expires_val is not None and vtime > expires_val:
         raise Refusal("freshness-expired",
-                      f"expired at {expires}, verification time {vtime}")
+                      f"expired at {expires_val}, verification time {vtime}")
     if max_age is not None and vtime - emitted > max_age:
         raise Refusal("freshness-stale",
                       f"age {vtime - emitted}s > max {max_age}s")
@@ -2367,6 +2388,8 @@ def enforce_policy(policy: dict, bundle: dict, root: dict, by_id: dict,
     if require["require_nonce"] and root["freshness"]["nonce"] is None:
         raise Refusal("policy-violation", "nonce required by policy")
     if require["max_age_seconds"] is not None:
+        # deep_validate_node has already enforced vtime >= emitted for every
+        # node (freshness-premature), so this policy age is non-negative.
         emitted = int(root["freshness"]["emitted_at_unix"])
         if args.verification_time_unix - emitted > \
                 require["max_age_seconds"]:

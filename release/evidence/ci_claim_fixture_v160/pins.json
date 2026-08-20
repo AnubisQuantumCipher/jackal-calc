@@ -9,5 +9,5 @@
   "note": "caller-side semantic + infrastructure pins recorded at fixture creation; the recorded environment epoch is the sealed macOS arm64 jackal-native identity whose exact-cert output this bundle embeds - CI replays the recorded epoch, it does not rebuild the engine",
   "root": "767334ad2c9340c78573e19c9b31b3968054eb08440a31b8f6621a6f29dcf8da",
   "schema": "jackal-ci-claim-admission-pins-v1",
-  "verification_time_unix": 1786752000
+  "verification_time_unix": 1786924800
 }
